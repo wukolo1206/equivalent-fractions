@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>等值分數動畫</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: #f0f9ff;
+      box-sizing: border-box;
+    }
+
+    .fraction-line {
+      height: 3px;
+      background-color: #000;
+      margin: 4px 0;
+    }
+
+    .division-line {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.5);
+      transition: all 0.8s ease;
+    }
+
+    .vertical-line {
+      width: 2px;
+      height: 100%;
+    }
+
+    .dot {
+      border-radius: 50%;
+      margin: 2px;
+      display: inline-block;
+      transition: background-color 0.5s ease;
+    }
+
+    .dot-container {
+      display: grid;
+      gap: 4px;
+      padding: 8px;
+      height: 100%;
+      position: relative;
+    }
+
+    .dot-container-8 {
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+
+    .dot-container-16 {
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+
+    .dot-container-32 {
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+    }
+
+    .group-border {
+      position: absolute;
+      border: 2px solid #000;
+      border-radius: 8px;
+      transition: all 0.8s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="min-h-screen flex flex-col items-center py-2 px-4">
+    <h1 class="text-xl font-bold text-blue-800 mb-2">等值分數視覺化教學</h1>
+    <div class="bg-white rounded-xl shadow-lg p-3 w-full max-w-4xl mb-2">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+        <!-- 左側：基本分數選擇 -->
+        <div class="text-center">
+          <h2 class="text-lg font-bold text-gray-700 mb-1">選擇基本分數</h2>
+          <!-- 連續量模式的分數選擇 -->
+          <div id="continuousFractions" class="grid grid-cols-4 gap-1 mb-1 hidden">
+            <button onclick="setBaseFraction(1, 2)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/2</button>
+            <button onclick="setBaseFraction(1, 3)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/3</button>
+            <button onclick="setBaseFraction(2, 3)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">2/3</button>
+            <button onclick="setBaseFraction(1, 4)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/4</button>
+            <button onclick="setBaseFraction(3, 4)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">3/4</button>
+            <button onclick="setBaseFraction(1, 5)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/5</button>
+            <button onclick="setBaseFraction(2, 5)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">2/5</button>
+            <button onclick="setBaseFraction(3, 5)" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">3/5</button>
+          </div>
+          <!-- 離散量模式的分數選擇 -->
+          <div id="discreteFractions" class="flex justify-center space-x-2 mb-1">
+            <button onclick="setBaseFraction(1, 2)" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/2</button>
+            <button onclick="setBaseFraction(1, 4)" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/4</button>
+            <button onclick="setBaseFraction(1, 8)" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">1/8</button>
+          </div>
+        </div>
+        <!-- 中間：等值分數倍數選擇 -->
+        <div class="text-center">
+          <h2 class="text-lg font-bold text-gray-700 mb-1">選擇等值分數倍數</h2>
+          <div class="flex justify-center space-x-2">
+            <button onclick="showEquivalent(2)" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">×2</button>
+            <button onclick="showEquivalent(3)" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">×3</button>
+            <button onclick="showEquivalent(4)" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">×4</button>
+            <button onclick="showEquivalent(5)" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">×5</button>
+          </div>
+        </div>
+        <!-- 右側：視覺化模式選擇 -->
+        <div class="text-center">
+          <h2 class="text-lg font-bold text-gray-700 mb-1">選擇視覺化模式</h2>
+          <div class="flex justify-center space-x-2 mb-1">
+            <button id="continuousBtn" onclick="setVisualMode('continuous')" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">連續量</button>
+            <button id="discreteBtn" onclick="setVisualMode('discrete')" class="px-3 py-1 bg-indigo-800 text-white rounded-lg hover:bg-indigo-700 transition text-sm">離散量</button>
+          </div>
+          <!-- 離散量圓球數量選擇 -->
+          <div id="dotCountSelector" class="flex justify-center items-center space-x-1 hidden">
+            <span class="text-gray-700 text-xs">圓球數：</span>
+            <button id="dot8Btn" onclick="setDotCount(8)" class="px-2 py-1 bg-purple-800 text-white rounded-lg hover:bg-purple-700 transition text-xs">8</button>
+            <button id="dot16Btn" onclick="setDotCount(16)" class="px-2 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs">16</button>
+            <button id="dot32Btn" onclick="setDotCount(32)" class="px-2 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs">32</button>
+          </div>
+        </div>
+      </div>
+      <!-- 分數顯示區域 -->
+      <div class="flex justify-center items-center space-x-6 mb-3">
+        <div class="text-3xl font-bold text-center flex flex-col items-center w-16">
+          <div id="numerator" class="text-blue-700">1</div>
+          <div class="fraction-line w-full"></div>
+          <div id="denominator" class="text-blue-700">2</div>
+        </div>
+        <div class="text-3xl font-bold">=</div>
+        <div class="text-3xl font-bold text-center flex flex-col items-center w-16">
+          <div id="eqNumerator" class="text-green-700">2</div>
+          <div class="fraction-line w-full"></div>
+          <div id="eqDenominator" class="text-green-700">4</div>
+        </div>
+      </div>
+      <!-- 視覺化區域 -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="md:col-span-4">
+          <!-- 連續量視覺化 -->
+          <div id="continuousVisual" class="relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2 hidden">
+            <div id="fractionVisual" class="w-full h-full relative">
+              <div id="coloredPart" class="absolute top-0 left-0 bg-blue-500 h-full transition-all duration-700 ease-in-out"></div>
+              <div id="divisionContainer" class="absolute top-0 left-0 w-full h-full"></div>
+            </div>
+          </div>
+          <!-- 離散量視覺化 -->
+          <div id="discreteVisual" class="relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2">
+            <div id="dotContainer" class="w-full h-full dot-container dot-container-8"></div>
+            <div id="groupBorderContainer" class="absolute top-0 left-0 w-full h-full"></div>
+          </div>
+          <div class="flex justify-center space-x-2">
+            <button id="showOriginalBtn" onclick="toggleView('original')" class="px-3 py-1 bg-blue-800 text-white rounded-lg hover:bg-blue-700 transition text-sm">原始分數</button>
+            <button id="showEquivalentBtn" onclick="toggleView('equivalent')" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">等值分數</button>
+            <button id="showAnimationBtn" onclick="playAnimation()" class="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm">播放動畫</button>
+          </div>
+        </div>
+        <div class="md:col-span-1 bg-blue-50 rounded-lg p-2">
+          <h3 class="text-sm font-bold text-center mb-1">觀察與說明</h3>
+          <p id="explanation" class="text-xs text-center">選擇一個基本分數，然後點擊倍數按鈕來查看等值分數。</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg p-4 w-full max-w-4xl">
+      <h2 class="text-xl font-bold text-center text-blue-800 mb-2">等值分數練習</h2>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="md:col-span-2">
+          <div id="question" class="text-lg mb-2">
+            找出 <span id="questionFraction" class="font-bold">1/2</span> 的等值分數：
+          </div>
+          <div id="feedback" class="text-center text-base font-bold hidden mb-2"></div>
+          <button onclick="generateQuestion()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">下一題</button>
+        </div>
+        <div class="md:col-span-3">
+          <div class="grid grid-cols-2 gap-2 w-full mb-2">
+            <button onclick="checkAnswer(this)" data-value="2/4" class="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition text-base font-bold">2/4</button>
+            <button onclick="checkAnswer(this)" data-value="1/4" class="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition text-base font-bold">1/4</button>
+            <button onclick="checkAnswer(this)" data-value="4/8" class="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition text-base font-bold">4/8</button>
+            <button onclick="checkAnswer(this)" data-value="2/8" class="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition text-base font-bold">2/8</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentNumerator = 1;
+    let currentDenominator = 2;
+    let currentMultiplier = 2;
+    let currentQuestion = { numerator: 1, denominator: 2 };
+    let currentView = 'original';
+    let visualMode = 'discrete';
+    let animationInProgress = false;
+    let dotCount = 8;
+
+    window.onload = function() {
+      setBaseFraction(1, 2);
+      showEquivalent(2);
+      generateQuestion();
+      createDots(dotCount);
+      updateFractionButtons();
+      updateDotCountSelector();
+    };
+
+    function setDotCount(count) {
+      if (animationInProgress) return;
+      dotCount = count;
+      createDots(count);
+
+      document.getElementById('dot8Btn').className =
+        count === 8
+          ? 'px-2 py-1 bg-purple-800 text-white rounded-lg transition text-xs'
+          : 'px-2 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs';
+      document.getElementById('dot16Btn').className =
+        count === 16
+          ? 'px-2 py-1 bg-purple-800 text-white rounded-lg transition text-xs'
+          : 'px-2 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs';
+      document.getElementById('dot32Btn').className =
+        count === 32
+          ? 'px-2 py-1 bg-purple-800 text-white rounded-lg transition text-xs'
+          : 'px-2 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs';
+
+      const dotContainer = document.getElementById('dotContainer');
+      dotContainer.className = `w-full h-full dot-container dot-container-${count}`;
+      updateVisual();
+    }
+
+    function updateDotCountSelector() {
+      const dotCountSelector = document.getElementById('dotCountSelector');
+      if (visualMode === 'discrete') {
+        dotCountSelector.classList.remove('hidden');
+      } else {
+        dotCountSelector.classList.add('hidden');
+      }
+    }
+
+    function createDots(count) {
+      const dotContainer = document.getElementById('dotContainer');
+      dotContainer.innerHTML = '';
+
+      let dotSize;
+      if (count === 8) dotSize = '35px';
+      else if (count === 16) dotSize = '25px';
+      else dotSize = '15px';
+
+      for (let i = 0; i < count; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.id = `dot-${i}`;
+        dot.style.width = dotSize;
+        dot.style.height = dotSize;
+        dot.style.backgroundColor = '#E5E7EB';
+        dotContainer.appendChild(dot);
+      }
+
+      updateDotColors();
+      updateGroupBorders();
+    }
+
+    function updateDotColors() {
+      const dots = document.querySelectorAll('.dot');
+      let coloredDotsCount;
+      if (currentView === 'original') {
+        coloredDotsCount = Math.round((currentNumerator / currentDenominator) * dotCount);
+      } else {
+        const eqNumerator = currentNumerator * currentMultiplier;
+        const eqDenominator = currentDenominator * currentMultiplier;
+        coloredDotsCount = Math.round((eqNumerator / eqDenominator) * dotCount);
+      }
+
+      dots.forEach((dot, index) => {
+        dot.style.backgroundColor = index < coloredDotsCount ? '#3B82F6' : '#E5E7EB';
+      });
+    }
+
+    function setBaseFraction(numerator, denominator) {
+      currentNumerator = numerator;
+      currentDenominator = denominator;
+      document.getElementById('numerator').textContent = numerator;
+      document.getElementById('denominator').textContent = denominator;
+      showEquivalent(currentMultiplier);
+      updateVisual();
+      updateExplanation();
+    }
+
+    function showEquivalent(multiplier) {
+      currentMultiplier = multiplier;
+      const eqNumerator = currentNumerator * multiplier;
+      const eqDenominator = currentDenominator * multiplier;
+      document.getElementById('eqNumerator').textContent = eqNumerator;
+      document.getElementById('eqDenominator').textContent = eqDenominator;
+      updateVisual();
+      updateExplanation();
+    }
+
+    function updateFractionButtons() {
+      const continuousFractions = document.getElementById('continuousFractions');
+      const discreteFractions = document.getElementById('discreteFractions');
+      if (visualMode === 'continuous') {
+        continuousFractions.classList.remove('hidden');
+        discreteFractions.classList.add('hidden');
+      } else {
+        continuousFractions.classList.add('hidden');
+        discreteFractions.classList.remove('hidden');
+      }
+    }
+
+    function setVisualMode(mode) {
+      if (animationInProgress) return;
+      visualMode = mode;
+
+      document.getElementById('continuousBtn').className =
+        mode === 'continuous'
+          ? 'px-3 py-1 bg-indigo-800 text-white rounded-lg transition text-sm'
+          : 'px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm';
+      document.getElementById('discreteBtn').className =
+        mode === 'discrete'
+          ? 'px-3 py-1 bg-indigo-800 text-white rounded-lg transition text-sm'
+          : 'px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm';
+
+      document.getElementById('continuousVisual').className =
+        mode === 'continuous'
+          ? 'relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2'
+          : 'relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2 hidden';
+      document.getElementById('discreteVisual').className =
+        mode === 'discrete'
+          ? 'relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2'
+          : 'relative w-full h-48 border-4 border-gray-700 rounded-lg overflow-hidden mb-2 hidden';
+
+      updateFractionButtons();
+      updateDotCountSelector();
+
+      if (mode === 'continuous' && currentDenominator === 8) {
+        setBaseFraction(1, 2);
+      }
+
+      updateVisual();
+    }
+
+    function updateVisual() {
+      if (visualMode === 'continuous') {
+        updateContinuousVisual();
+      } else {
+        updateDiscreteVisual();
+      }
+    }
+
+    function updateContinuousVisual() {
+      const coloredPart = document.getElementById('coloredPart');
+      const divisionContainer = document.getElementById('divisionContainer');
+
+      const widthPercentage = (currentNumerator / currentDenominator) * 100;
+      coloredPart.style.width = `${widthPercentage}%`;
+      divisionContainer.innerHTML = '';
+
+      if (currentView === 'original') {
+        for (let i = 1; i < currentDenominator; i++) {
+          const position = (i / currentDenominator) * 100;
+          const line = document.createElement('div');
+          line.className = 'division-line vertical-line';
+          line.style.left = `${position}%`;
+          divisionContainer.appendChild(line);
+        }
+      } else {
+        const eqDenominator = currentDenominator * currentMultiplier;
+        for (let i = 1; i < eqDenominator; i++) {
+          const position = (i / eqDenominator) * 100;
+          const line = document.createElement('div');
+          line.className = 'division-line vertical-line';
+          line.style.left = `${position}%`;
+          if (i % currentMultiplier === 0) {
+            line.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            line.style.width = '3px';
+          }
+          divisionContainer.appendChild(line);
+        }
+      }
+    }
+
+    function updateDiscreteVisual() {
+      updateDotColors();
+      updateGroupBorders();
+    }
+
+    function updateGroupBorders() {
+      const groupBorderContainer = document.getElementById('groupBorderContainer');
+      groupBorderContainer.innerHTML = '';
+
+      const dotContainer = document.getElementById('dotContainer');
+      const dots = dotContainer.querySelectorAll('.dot');
+      if (dots.length === 0) return;
+
+      if (currentView === 'original') {
+        const groupCount = currentDenominator;
+        const dotsPerGroup = dotCount / groupCount;
+        for (let i = 0; i < groupCount; i++) {
+          createGroupBorder(i * dotsPerGroup, i * dotsPerGroup + dotsPerGroup - 1, i < currentNumerator);
+        }
+      } else {
+        const groupCount = currentDenominator * currentMultiplier;
+        const dotsPerGroup = dotCount / groupCount;
+        for (let i = 0; i < groupCount; i++) {
+          createGroupBorder(i * dotsPerGroup, i * dotsPerGroup + dotsPerGroup - 1, i < currentNumerator * currentMultiplier);
+        }
+      }
+    }
+
+    function createGroupBorder(startIndex, endIndex, isColored) {
+      const groupBorderContainer = document.getElementById('groupBorderContainer');
+      const dots = document.querySelectorAll('.dot');
+      if (startIndex >= dots.length || endIndex >= dots.length) return;
+
+      const startDot = dots[Math.floor(startIndex)];
+      const endDot = dots[Math.floor(endIndex)];
+
+      const startRect = startDot.getBoundingClientRect();
+      const endRect = endDot.getBoundingClientRect();
+      const containerRect = groupBorderContainer.getBoundingClientRect();
+
+      const border = document.createElement('div');
+      border.className = 'group-border';
+
+      const left = (startRect.left - containerRect.left) - 4;
+      const top = (startRect.top - containerRect.top) - 4;
+      const right = (endRect.right - containerRect.left) + 4;
+      const bottom = (endRect.bottom - containerRect.top) + 4;
+
+      border.style.left = `${left}px`;
+      border.style.top = `${top}px`;
+      border.style.width = `${right - left}px`;
+      border.style.height = `${bottom - top}px`;
+
+      if (isColored) {
+        border.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        border.style.borderColor = '#3B82F6';
+      }
+
+      if (currentView === 'equivalent') {
+        const dotsPerGroup = dotCount / (currentDenominator * currentMultiplier);
+        const groupIndex = Math.floor(startIndex / dotsPerGroup);
+        if (groupIndex % currentMultiplier === 0) border.style.borderLeftWidth = '3px';
+        if ((groupIndex + 1) % currentMultiplier === 0) border.style.borderRightWidth = '3px';
+      }
+
+      groupBorderContainer.appendChild(border);
+    }
+
+    function toggleView(view) {
+      if (animationInProgress) return;
+      currentView = view;
+      updateVisual();
+
+      document.getElementById('showOriginalBtn').className =
+        view === 'original'
+          ? 'px-3 py-1 bg-blue-800 text-white rounded-lg transition text-sm'
+          : 'px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm';
+      document.getElementById('showEquivalentBtn').className =
+        view === 'equivalent'
+          ? 'px-3 py-1 bg-green-800 text-white rounded-lg transition text-sm'
+          : 'px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm';
+    }
+
+    function playAnimation() {
+      if (animationInProgress) return;
+      animationInProgress = true;
+      document.getElementById('showAnimationBtn').disabled = true;
+      document.getElementById('showAnimationBtn').className = 'px-3 py-1 bg-gray-400 text-white rounded-lg cursor-not-allowed transition text-sm';
+
+      currentView = 'original';
+      updateVisual();
+
+      setTimeout(() => {
+        currentView = 'equivalent';
+        updateVisual();
+
+        setTimeout(() => {
+          animationInProgress = false;
+          document.getElementById('showAnimationBtn').disabled = false;
+          document.getElementById('showAnimationBtn').className = 'px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm';
+        }, 1500);
+      }, 1500);
+    }
+
+    function updateExplanation() {
+      const eqNumerator = currentNumerator * currentMultiplier;
+      const eqDenominator = currentDenominator * currentMultiplier;
+      let explanationText = `${currentNumerator}/${currentDenominator} = ${eqNumerator}/${eqDenominator}。分子分母同乘 ${currentMultiplier}，`;
+      if (visualMode === 'continuous') {
+        explanationText += `每份再細分為 ${currentMultiplier} 等份。`;
+      } else {
+        explanationText += `每組數量變為 ${currentMultiplier} 分之一，組數增加 ${currentMultiplier} 倍。`;
+      }
+      document.getElementById('explanation').innerHTML = explanationText;
+    }
+
+    function generateQuestion() {
+      document.getElementById('feedback').classList.add('hidden');
+
+      const fractions = [
+        { numerator: 1, denominator: 2 },
+        { numerator: 1, denominator: 4 },
+        { numerator: 1, denominator: 8 }
+      ];
+
+      const randomIndex = Math.floor(Math.random() * fractions.length);
+      const { numerator, denominator } = fractions[randomIndex];
+      currentQuestion = { numerator, denominator };
+      document.getElementById('questionFraction').textContent = `${numerator}/${denominator}`;
+
+      const multiplier = Math.floor(Math.random() * 2) + 2;
+      const correctAnswer = `${numerator * multiplier}/${denominator * multiplier}`;
+      const options = [correctAnswer];
+
+      while (options.length < 4) {
+        const wrongIndex = Math.floor(Math.random() * fractions.length);
+        const wrongFraction = fractions[wrongIndex];
+        const wrongMultiplier = Math.floor(Math.random() * 3) + 2;
+        const wrongAnswer = `${wrongFraction.numerator * wrongMultiplier}/${wrongFraction.denominator * wrongMultiplier}`;
+        if (wrongFraction.numerator / wrongFraction.denominator !== numerator / denominator && !options.includes(wrongAnswer)) {
+          options.push(wrongAnswer);
+        }
+      }
+
+      shuffleArray(options);
+
+      const buttons = document.querySelectorAll('[data-value]');
+      buttons.forEach((button, index) => {
+        button.dataset.value = options[index];
+        button.textContent = options[index];
+        button.className = 'px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition text-base font-bold';
+      });
+    }
+
+    function checkAnswer(button) {
+      const selectedValue = button.dataset.value;
+      const [selectedNum, selectedDenom] = selectedValue.split('/').map(Number);
+      const { numerator, denominator } = currentQuestion;
+      const isCorrect = (selectedNum / selectedDenom) === (numerator / denominator);
+
+      const feedback = document.getElementById('feedback');
+      if (isCorrect) {
+        feedback.textContent = '正確！👏';
+        feedback.className = 'text-center text-base font-bold text-green-600 mb-2';
+        button.className = 'px-3 py-2 bg-green-200 text-green-800 rounded-lg transition text-base font-bold';
+      } else {
+        feedback.textContent = '不正確，再試一次！';
+        feedback.className = 'text-center text-base font-bold text-red-600 mb-2';
+        button.className = 'px-3 py-2 bg-red-200 text-red-800 rounded-lg transition text-base font-bold';
+      }
+      feedback.classList.remove('hidden');
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    window.addEventListener('resize', function() {
+      if (visualMode === 'discrete') {
+        setTimeout(updateGroupBorders, 100);
+      }
+    });
+  </script>
+</body>
+</html>
